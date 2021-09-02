@@ -1,0 +1,8 @@
+# ignore files with no extension
+*
+!/**/
+!*.*
+
+# specified files and dirs
+.vscode/
+**/*.exe
