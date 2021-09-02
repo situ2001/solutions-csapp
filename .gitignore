@@ -3,6 +3,11 @@
 !/**/
 !*.*
 
+# ignore file with extension like .114514
+**/*.[0-9]
+**/*.[0-9][0-9]
+**/*.[0-9][0-9][0-9]
+
 # specified files and dirs
 .vscode/
 **/*.exe
