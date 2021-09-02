@@ -12,7 +12,7 @@
 int main()
 {
     int x = 0x87654321;
-    printf("0x%08x\n", x & 0xff); // A
-    printf("0x%08x\n", x ^ (~0xff)); // B
-    printf("0x%08x\n", x | 0xff); // C
+    printf("0x%.8x\n", x & 0xff); // A
+    printf("0x%.8x\n", x ^ (~0xff)); // B
+    printf("0x%.8x\n", x | 0xff); // C
 }
