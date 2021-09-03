@@ -22,6 +22,6 @@ void show_pointer(void* x)
 int main()
 {
     long i = 1145141919810810L;
-    show_bytes((byte_pointer) &i, sizeof(long)); // address of the variable i
-    show_pointer(&i); // address of the pointer to i
+    show_bytes((byte_pointer) &i, sizeof(long)); // bytes of the variable i
+    show_pointer(&i); // bytes of the pointer to i
 }
