@@ -32,7 +32,9 @@ float sum_elements_fixed(float a[], unsigned length)
     // Because of the implicit casting between int & unsigned
     // When one of the two operands is int type and another one is unsigned type
     // The int one will be implicitly casted to unsigned
-    // 0 - 1 = -1, which represents 0xffffffff, then converts to unsigned comparsion
+    // 0 - 1 = -1 represents 0xffffffff
+    // While one of two sides appears unsigned type
+    // So it will do unsigned comparsion
     // So i <= 0 - 1 means 0x00000000 <= 0xffffffff, which is always true in this loop.
     unsigned ar = length - 1;
     show_bytes((byte_pointer)(&ar), 4); // ff ff ff ff
