@@ -1,5 +1,5 @@
-# ignore files with no extension
-*
+# ignore files with no extension in chapter*
+chapter*/*
 !/**/
 !*.*
 
