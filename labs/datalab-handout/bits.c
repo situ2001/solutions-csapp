@@ -143,7 +143,8 @@ NOTES:
  *   Rating: 1
  */
 int bitXor(int x, int y) {
-  return 2;
+    /* First convert XOR to combination of AND and OR, then apply De Morgan's laws. */
+    return ~(~x & ~y) & ~(x & y);
 }
 /* 
  * tmin - return minimum two's complement integer 
@@ -152,9 +153,8 @@ int bitXor(int x, int y) {
  *   Rating: 1
  */
 int tmin(void) {
-
-  return 2;
-
+    // Simply perform right shift 31 of bit on 1
+    return 1 << 31;
 }
 //2
 /*
@@ -165,7 +165,11 @@ int tmin(void) {
  *   Rating: 1
  */
 int isTmax(int x) {
-  return 2;
+    // If x = TMax
+    // x + 1 => 0x80000000, x + (x + 1) => 0xffffffff, ~(x + (x + 1)) => 0x0
+    // Consider 0x80000000(TMin) and 0xffffffff(-1), so we should plus !(x+1)
+    // And also think of how to convert result from number logically to 1 or 0
+    return !(~(x + (x + 1)) + !(x + 1));
 }
 /* 
  * allOddBits - return 1 if all odd-numbered bits in word set to 1
@@ -176,7 +180,10 @@ int isTmax(int x) {
  *   Rating: 2
  */
 int allOddBits(int x) {
-  return 2;
+    // Construct a mask, do not forget priority of operator
+    int mask = ((0xaa + (0xaa << 8)) << 16) + (0xaa + (0xaa << 8));
+    // First perform & on mask and x then ^ on mask and x
+    return !(mask ^ (mask & x));
 }
 /* 
  * negate - return -x 
@@ -186,7 +193,8 @@ int allOddBits(int x) {
  *   Rating: 2
  */
 int negate(int x) {
-  return 2;
+    // Well-known qu fan zai jia 1 (NOT then add1)
+    return ~x + 1;
 }
 //3
 /* 
@@ -199,7 +207,12 @@ int negate(int x) {
  *   Rating: 3
  */
 int isAsciiDigit(int x) {
-  return 2;
+    // if 39 - x >= 0 and x - 30 >= 0, then yes
+    int neg_x = ~x + 1;
+    int res1 = 0x39 + neg_x;
+    int res2 = x + (~(0x30) + 1);
+    // How to check wether a result is negative or not? Use sign bit
+    return !((res1 >> 31) | (res2 >> 31));
 }
 /* 
  * conditional - same as x ? y : z 
@@ -209,7 +222,11 @@ int isAsciiDigit(int x) {
  *   Rating: 3
  */
 int conditional(int x, int y, int z) {
-  return 2;
+    // if x = 0, return z, else y
+    // So how to check wether x is 0 or not?
+    int condition = !!x; // integer => 0 or 1
+    condition = ~condition + 1; // 0 or 1 => 0x00000000 or 0xffffffff
+    return (condition & y) | (~condition & z); // use condition as a mask
 }
 /* 
  * isLessOrEqual - if x <= y  then return 1, else return 0 
@@ -219,7 +236,16 @@ int conditional(int x, int y, int z) {
  *   Rating: 3
  */
 int isLessOrEqual(int x, int y) {
-  return 2;
+    int neg_x = ~x + 1;
+    // Case1: when y+ and x-
+    int y_pos_x_neg = ((x >> 31 & 0x1)) & (!(y >> 31 & 0x1));
+    // Case2: If same sign, then test if result of sub > 0
+    int same_sign = !((x >> 31) ^ (y >> 31));
+    int sub_comparsion = !((y + neg_x) >> 31);
+    int sub_more_than_zero = same_sign & sub_comparsion;
+    // Case3: x == y
+    int equal = !(x ^ y);
+    return equal | sub_more_than_zero | y_pos_x_neg;
 }
 //4
 /* 
@@ -229,9 +255,11 @@ int isLessOrEqual(int x, int y) {
  *   Legal ops: ~ & ^ | + << >>
  *   Max ops: 12
  *   Rating: 4 
- */
+ */ 
 int logicalNeg(int x) {
-  return 2;
+    // 1. Fill the whole bit pattern with 1s(0xffffffff) or 0s(0x0)
+    // 2. Adding 1 to it may cause overflow. That is, 0xffffffff => 0, 0x0 => 1
+    return ((x | (~x + 1)) >> 31) + 1;
 }
 /* howManyBits - return the minimum number of bits required to represent x in
  *             two's complement
@@ -246,7 +274,39 @@ int logicalNeg(int x) {
  *  Rating: 4
  */
 int howManyBits(int x) {
-  return 0;
+    int sign = x >> 31;
+    // If x < 0, perform ~ on it
+    int target = sign ^ x;
+    // printf("x=%.8x sign=%.8x target=%.8x\n", x, sign, target);
+    // Either pos or neg, find the position of the highest 1
+    int res = 0;
+    // How to get the position?
+    // Use !! => 0 or 1, then let it right shifts x bit
+    // We can divide it equally
+    // Note: if variables are not declared first, there will be errors when you run ./dic with this file
+    int higher_16_bit, higher_8_bit, higher_4_bit, higher_2_bit, higher_1_bit;
+    // If there is any 1 in higher 16 bits, add 16
+    higher_16_bit = !!(target >> 16) << 4;
+    // printf("target=%x\n", target);
+    target >>= higher_16_bit;
+    // divide the higher 16 bits into 8 bits
+    higher_8_bit = !!(target >> 8) << 3;
+    // printf("target=%x\n", target);
+    target >>= higher_8_bit;
+    // the same
+    higher_4_bit = !!(target >> 4) << 2;
+    // printf("target=%x\n", target);
+    target >>= higher_4_bit;
+    higher_2_bit = !!(target >> 2) << 1;
+    // printf("target=%x\n", target);
+    // target >>= higher_4_bit;
+    target >>= higher_2_bit; // WTF!
+    higher_1_bit = !!(target >> 1) << 0;
+    // printf("target=%x\n", target);
+    target >>= higher_1_bit;
+    res += (higher_16_bit + higher_8_bit + higher_4_bit + higher_2_bit + higher_1_bit);
+    // printf("target=%d\n", target);
+    return res + target + 1; // + remaining target and sign bit
 }
 //float
 /* 
@@ -261,7 +321,22 @@ int howManyBits(int x) {
  *   Rating: 4
  */
 unsigned floatScale2(unsigned uf) {
-  return 2;
+    // printf("uf=%.8x\n", uf);
+    int sign = (uf >> 31) & 0x1; // 0 or 1
+    unsigned exp = (uf >> 23) & 0xff;
+    // printf("exp=0x%.8x\n", exp);
+    if (exp == 0xff) return uf; // NaN
+    if (exp == 0x0) { // If exp = 0(Denoarmalized), just << 1
+        // printf("uf=0x%.8x exp=0x%.8x\n", uf, exp);
+        // simply *2 then add back sign bit
+        return (uf << 1) | (sign << 31);
+    }
+    exp = exp + 1;
+    if (exp >= 0xff) { // +- Infinity
+        return (exp << 23) | (uf & 0x8fffffff);
+    }
+    // use 0x807fffff to remove exp of uf
+    return (uf & 0x807fffff) | (exp << 23);
 }
 /* 
  * floatFloat2Int - Return bit-level equivalent of expression (int) f
@@ -276,7 +351,37 @@ unsigned floatScale2(unsigned uf) {
  *   Rating: 4
  */
 int floatFloat2Int(unsigned uf) {
-  return 2;
+    int bias = 127;
+    int sign = (uf >> 31) & 0x1; // 0 or 1
+    int exp = (uf >> 23) & 0xff;
+    int frac = uf & 0x7fffff;
+    int E = exp - bias;
+    // printf("ul=0x%.8x E=%d\n", uf, E);
+
+    // Cases
+    // if E > 31 => Out of Range
+    if (E > 31) return 0x80000000u;
+    // if E < 0 => 0
+    if (E < 0) return 0;
+    // From here, we should just consider the normalized form
+    // right shift the floating point of frac
+    // if 23 - E < 0
+    int tmp;
+    if (E > 23) {
+        tmp = frac << (E - 23);
+    } else {
+        tmp = frac >> (23 - E);
+    }
+    // printf("tmp=0x%.8x\n", tmp);
+    tmp = tmp & (~(0x80000000 >> (23 - E - 1)));
+    // add back sign bit
+    // tmp = tmp | (sign << 31);
+    // add 1 to first
+    tmp = tmp | (1 << E);
+    // printf("tmp=0x%.8x uf=0x%.8x\n", tmp, uf);
+    // ~x + 1 if sign == 1
+    if (sign == 1) return ~tmp + 1;
+    return tmp;
 }
 /* 
  * floatPower2 - Return bit-level equivalent of the expression 2.0^x
@@ -292,5 +397,14 @@ int floatFloat2Int(unsigned uf) {
  *   Rating: 4
  */
 unsigned floatPower2(int x) {
-    return 2;
+    int bias = 127;
+    // Check out figure 2.36 on the book
+    // > largest norm
+    if (x > 127) return 0x7f800000;
+    // < smallest denorm
+    if (x < (-23-126)) return 0;
+    // in [smallest norm, largest norm]
+    if (x >= -126 && x <= 127) return (bias + x) << 23;
+    // when x < -126 && x >= (-23-126), it is Denorm, so bits of exp are irrelevant in this case.
+    return 114514; // So we can return any number :)
 }
