@@ -167,7 +167,7 @@ int tmin(void) {
 int isTmax(int x) {
     // If x = TMax
     // x + 1 => 0x80000000, x + (x + 1) => 0xffffffff, ~(x + (x + 1)) => 0x0
-    // Consider 0x80000000(TMin) and 0xffffffff(-1), so we should plus !(x+1)
+    // Consider 0xffffffff(-1), so we should plus !(x+1)
     // And also think of how to convert result from number logically to 1 or 0
     return !(~(x + (x + 1)) + !(x + 1));
 }
@@ -239,7 +239,7 @@ int isLessOrEqual(int x, int y) {
     int neg_x = ~x + 1;
     // Case1: when y+ and x-
     int y_pos_x_neg = ((x >> 31 & 0x1)) & (!(y >> 31 & 0x1));
-    // Case2: If same sign, then test if result of sub > 0
+    // Case2: If signs of x and y are the same, we should test if result of sub > 0
     int same_sign = !((x >> 31) ^ (y >> 31));
     int sub_comparsion = !((y + neg_x) >> 31);
     int sub_more_than_zero = same_sign & sub_comparsion;
@@ -281,7 +281,7 @@ int howManyBits(int x) {
     // Either pos or neg, find the position of the highest 1
     int res = 0;
     // How to get the position?
-    // Use !! => 0 or 1, then let it right shifts x bit
+    // Use !! => 0 or 1, then let it right shifts x bit => 2^x or 0
     // We can divide it equally
     // Note: if variables are not declared first, there will be errors when you run ./dic with this file
     int higher_16_bit, higher_8_bit, higher_4_bit, higher_2_bit, higher_1_bit;
