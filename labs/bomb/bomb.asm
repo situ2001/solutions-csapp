@@ -297,9 +297,9 @@ Disassembly of section .text:
   400e28:	bf 78 23 40 00       	mov    $0x402378,%edi
   400e2d:	e8 de fc ff ff       	callq  400b10 <puts@plt>
   400e32:	e8 67 06 00 00       	callq  40149e <read_line>
-  400e37:	48 89 c7             	mov    %rax,%rdi
-  400e3a:	e8 a1 00 00 00       	callq  400ee0 <phase_1>
-  400e3f:	e8 80 07 00 00       	callq  4015c4 <phase_defused>
+  400e37:	48 89 c7             	mov    %rax,%rdi # %rdi is read from user input (read_line(%rax) => $%rdi)
+  400e3a:	e8 a1 00 00 00       	callq  400ee0 <phase_1> # phase 1
+  400e3f:	e8 80 07 00 00       	callq  4015c4 <phase_defused> # pahse1 is defused
   400e44:	bf a8 23 40 00       	mov    $0x4023a8,%edi
   400e49:	e8 c2 fc ff ff       	callq  400b10 <puts@plt>
   400e4e:	e8 4b 06 00 00       	callq  40149e <read_line>
@@ -344,40 +344,46 @@ Disassembly of section .text:
   400edf:	90                   	nop
 
 0000000000400ee0 <phase_1>:
-  400ee0:	48 83 ec 08          	sub    $0x8,%rsp
-  400ee4:	be 00 24 40 00       	mov    $0x402400,%esi
-  400ee9:	e8 4a 04 00 00       	callq  401338 <strings_not_equal>
+  400ee0:	48 83 ec 08          	sub    $0x8,%rsp # rsp <- rsp - 8, expand stack size
+  400ee4:	be 00 24 40 00       	mov    $0x402400,%esi # %esi <- 0x402400 (just simply read it from memory by using `x /s MEM` command)
+  400ee9:	e8 4a 04 00 00       	callq  401338 <strings_not_equal> # compare two string, note that arg2 is 0x402400
   400eee:	85 c0                	test   %eax,%eax
-  400ef0:	74 05                	je     400ef7 <phase_1+0x17>
+  400ef0:	74 05                	je     400ef7 <phase_1+0x17> # if stirngs_not_equal() == 0, skip explode_bomb
   400ef2:	e8 43 05 00 00       	callq  40143a <explode_bomb>
-  400ef7:	48 83 c4 08          	add    $0x8,%rsp
+  400ef7:	48 83 c4 08          	add    $0x8,%rsp # and jump to here
   400efb:	c3                   	retq   
 
 0000000000400efc <phase_2>:
-  400efc:	55                   	push   %rbp
+  400efc:	55                   	push   %rbp # callee-saved
   400efd:	53                   	push   %rbx
-  400efe:	48 83 ec 28          	sub    $0x28,%rsp
-  400f02:	48 89 e6             	mov    %rsp,%rsi
+  400efe:	48 83 ec 28          	sub    $0x28,%rsp # stack increases 28 bytes
+  400f02:	48 89 e6             	mov    %rsp,%rsi # %rsi <= %rsp (tmperorily saved stack pointer)
   400f05:	e8 52 05 00 00       	callq  40145c <read_six_numbers>
-  400f0a:	83 3c 24 01          	cmpl   $0x1,(%rsp)
-  400f0e:	74 20                	je     400f30 <phase_2+0x34>
+  # INIT BEGINS
+  400f0a:	83 3c 24 01          	cmpl   $0x1,(%rsp) # read returned result from stack (set breakpoint)
+  400f0e:	74 20                	je     400f30 <phase_2+0x34> # if stack.top() == 1
+  # INIT ENDS
   400f10:	e8 25 05 00 00       	callq  40143a <explode_bomb>
   400f15:	eb 19                	jmp    400f30 <phase_2+0x34>
-  400f17:	8b 43 fc             	mov    -0x4(%rbx),%eax
-  400f1a:	01 c0                	add    %eax,%eax
-  400f1c:	39 03                	cmp    %eax,(%rbx)
-  400f1e:	74 05                	je     400f25 <phase_2+0x29>
+  # LOOP BEGINS
+  400f17:	8b 43 fc             	mov    -0x4(%rbx),%eax # %eax = *(rbx - 4) => %eax = 1 (if it is the 2nd cycle, should be 2...)
+  400f1a:	01 c0                	add    %eax,%eax # %eax <- 2 * %eax
+  400f1c:	39 03                	cmp    %eax,(%rbx) # *rbx : *(rbx - 4)*2 => %rbx : 1 * 2
+  400f1e:	74 05                	je     400f25 <phase_2+0x29> # if (%rbx) - %eax == 0 (if the value of 2nd arg is 2x 1st arg, so 2nd input is 1 * 2 = 2)
   400f20:	e8 15 05 00 00       	callq  40143a <explode_bomb>
-  400f25:	48 83 c3 04          	add    $0x4,%rbx
-  400f29:	48 39 eb             	cmp    %rbp,%rbx
-  400f2c:	75 e9                	jne    400f17 <phase_2+0x1b>
-  400f2e:	eb 0c                	jmp    400f3c <phase_2+0x40>
-  400f30:	48 8d 5c 24 04       	lea    0x4(%rsp),%rbx
-  400f35:	48 8d 6c 24 18       	lea    0x18(%rsp),%rbp
+  400f25:	48 83 c3 04          	add    $0x4,%rbx # move up 0x4 (points to 3rd arg)
+  400f29:	48 39 eb             	cmp    %rbp,%rbx # %rbx:%rbp => current - (%rsp + 18) == 0?
+  400f2c:	75 e9                	jne    400f17 <phase_2+0x1b> # if not
+  400f2e:	eb 0c                	jmp    400f3c <phase_2+0x40> # so it is multiply by 2!
+  # LOOP ENDS
+  # BEFORE LOOP, init registers ---
+  400f30:	48 8d 5c 24 04       	lea    0x4(%rsp),%rbx # increase stack pointer by 4(bytes) then => %rbx (initially points to 2nd arg)
+  400f35:	48 8d 6c 24 18       	lea    0x18(%rsp),%rbp # %rsp + 18 => %rbp
   400f3a:	eb db                	jmp    400f17 <phase_2+0x1b>
-  400f3c:	48 83 c4 28          	add    $0x28,%rsp
+  # ---
+  400f3c:	48 83 c4 28          	add    $0x28,%rsp # deallocation
   400f40:	5b                   	pop    %rbx
-  400f41:	5d                   	pop    %rbp
+  400f41:	5d                   	pop    %rbp # pop callee-saved
   400f42:	c3                   	retq   
 
 0000000000400f43 <phase_3>:
@@ -699,21 +705,22 @@ Disassembly of section .text:
   401337:	c3                   	retq   
 
 0000000000401338 <strings_not_equal>:
-  401338:	41 54                	push   %r12
+  # arg1 in %rdi(from user_input), arg2 in %rsi(program provided)
+  401338:	41 54                	push   %r12 # callee-saved
   40133a:	55                   	push   %rbp
   40133b:	53                   	push   %rbx
-  40133c:	48 89 fb             	mov    %rdi,%rbx
-  40133f:	48 89 f5             	mov    %rsi,%rbp
-  401342:	e8 d4 ff ff ff       	callq  40131b <string_length>
-  401347:	41 89 c4             	mov    %eax,%r12d
-  40134a:	48 89 ef             	mov    %rbp,%rdi
-  40134d:	e8 c9 ff ff ff       	callq  40131b <string_length>
-  401352:	ba 01 00 00 00       	mov    $0x1,%edx
-  401357:	41 39 c4             	cmp    %eax,%r12d
-  40135a:	75 3f                	jne    40139b <strings_not_equal+0x63>
+  40133c:	48 89 fb             	mov    %rdi,%rbx # now %rbx has same value of %rdi
+  40133f:	48 89 f5             	mov    %rsi,%rbp # %rbp has %rsi too
+  401342:	e8 d4 ff ff ff       	callq  40131b <string_length> # pass (arg1) to string_length
+  401347:	41 89 c4             	mov    %eax,%r12d # save return value from string_length()
+  40134a:	48 89 ef             	mov    %rbp,%rdi # pass arg2 to string_length
+  40134d:	e8 c9 ff ff ff       	callq  40131b <string_length> # pass arg2 to string_length
+  401352:	ba 01 00 00 00       	mov    $0x1,%edx # save 1 to %edx
+  401357:	41 39 c4             	cmp    %eax,%r12d # compare length of arg1 & arg2 (arg2 : arg1)
+  40135a:	75 3f                	jne    40139b <strings_not_equal+0x63> # arg2 - arg1 != 0
   40135c:	0f b6 03             	movzbl (%rbx),%eax
   40135f:	84 c0                	test   %al,%al
-  401361:	74 25                	je     401388 <strings_not_equal+0x50>
+  401361:	74 25                	je     401388 <strings_not_equal+0x50> # arg2 - arg1 == 0
   401363:	3a 45 00             	cmp    0x0(%rbp),%al
   401366:	74 0a                	je     401372 <strings_not_equal+0x3a>
   401368:	eb 25                	jmp    40138f <strings_not_equal+0x57>
@@ -732,7 +739,7 @@ Disassembly of section .text:
   40138f:	ba 01 00 00 00       	mov    $0x1,%edx
   401394:	eb 05                	jmp    40139b <strings_not_equal+0x63>
   401396:	ba 01 00 00 00       	mov    $0x1,%edx
-  40139b:	89 d0                	mov    %edx,%eax
+  40139b:	89 d0                	mov    %edx,%eax # return 1, booooom!
   40139d:	5b                   	pop    %rbx
   40139e:	5d                   	pop    %rbp
   40139f:	41 5c                	pop    %r12
@@ -811,11 +818,11 @@ Disassembly of section .text:
   401474:	48 89 04 24          	mov    %rax,(%rsp)
   401478:	4c 8d 4e 0c          	lea    0xc(%rsi),%r9
   40147c:	4c 8d 46 08          	lea    0x8(%rsi),%r8
-  401480:	be c3 25 40 00       	mov    $0x4025c3,%esi
+  401480:	be c3 25 40 00       	mov    $0x4025c3,%esi # "%d %d %d %d %d %d"
   401485:	b8 00 00 00 00       	mov    $0x0,%eax
   40148a:	e8 61 f7 ff ff       	callq  400bf0 <__isoc99_sscanf@plt>
   40148f:	83 f8 05             	cmp    $0x5,%eax
-  401492:	7f 05                	jg     401499 <read_six_numbers+0x3d>
+  401492:	7f 05                	jg     401499 <read_six_numbers+0x3d> # read exactly 6 numbers
   401494:	e8 a1 ff ff ff       	callq  40143a <explode_bomb>
   401499:	48 83 c4 18          	add    $0x18,%rsp
   40149d:	c3                   	retq   
