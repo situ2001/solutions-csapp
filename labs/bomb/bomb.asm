@@ -448,7 +448,7 @@ Disassembly of section .text:
   400fdb:	01 c8                	add    %ecx,%eax
   400fdd:	d1 f8                	sar    %eax
   400fdf:	8d 0c 30             	lea    (%rax,%rsi,1),%ecx
-  400fe2:	39 f9                	cmp    %edi,%ecx
+  400fe2:	39 f9                	cmp    %edi,%ecx # sum - x
   400fe4:	7e 0c                	jle    400ff2 <func4+0x24> # <= 0
   400fe6:	8d 51 ff             	lea    -0x1(%rcx),%edx # > 0 BEGINS
   400fe9:	e8 e0 ff ff ff       	callq  400fce <func4>
@@ -478,11 +478,11 @@ Disassembly of section .text:
   40103a:	ba 0e 00 00 00       	mov    $0xe,%edx # 14
   40103f:	be 00 00 00 00       	mov    $0x0,%esi # 0
   401044:	8b 7c 24 08          	mov    0x8(%rsp),%edi # arg1
-  401048:	e8 81 ff ff ff       	callq  400fce <func4> # func(arg1, 0, 14)
+  401048:	e8 81 ff ff ff       	callq  400fce <func4> # func4(arg1, 0, 14)
   40104d:	85 c0                	test   %eax,%eax
-  40104f:	75 07                	jne    401058 <phase_4+0x4c>
+  40104f:	75 07                	jne    401058 <phase_4+0x4c> # if func4() != 0, boom
   401051:	83 7c 24 0c 00       	cmpl   $0x0,0xc(%rsp)
-  401056:	74 05                	je     40105d <phase_4+0x51>
+  401056:	74 05                	je     40105d <phase_4+0x51> # if arg2 === 0, so arg2 must be 0!
   401058:	e8 dd 03 00 00       	callq  40143a <explode_bomb>
   40105d:	48 83 c4 18          	add    $0x18,%rsp
   401061:	c3                   	retq   
