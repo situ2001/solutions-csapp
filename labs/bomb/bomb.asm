@@ -388,7 +388,7 @@ Disassembly of section .text:
 
 0000000000400f43 <phase_3>:
   400f43:	48 83 ec 18          	sub    $0x18,%rsp
-  400f47:	48 8d 4c 24 0c       	lea    0xc(%rsp),%rcx # second arg (%rsp + 12) ==> (&arg1)
+  400f47:	48 8d 4c 24 0c       	lea    0xc(%rsp),%rcx # second arg (%rsp + 12) ==> (&arg2)
   400f4c:	48 8d 54 24 08       	lea    0x8(%rsp),%rdx # first arg (%rsp + 8)
   400f51:	be cf 25 40 00       	mov    $0x4025cf,%esi # "%d %d"
   400f56:	b8 00 00 00 00       	mov    $0x0,%eax
@@ -488,43 +488,49 @@ Disassembly of section .text:
   401061:	c3                   	retq   
 
 0000000000401062 <phase_5>:
+  # input is stored in %rdi
   401062:	53                   	push   %rbx
   401063:	48 83 ec 20          	sub    $0x20,%rsp
   401067:	48 89 fb             	mov    %rdi,%rbx
   40106a:	64 48 8b 04 25 28 00 	mov    %fs:0x28,%rax
   401071:	00 00 
   401073:	48 89 44 24 18       	mov    %rax,0x18(%rsp)
-  401078:	31 c0                	xor    %eax,%eax
-  40107a:	e8 9c 02 00 00       	callq  40131b <string_length>
-  40107f:	83 f8 06             	cmp    $0x6,%eax
+  401078:	31 c0                	xor    %eax,%eax # %eax <- 0
+  40107a:	e8 9c 02 00 00       	callq  40131b <string_length> # length of input
+  40107f:	83 f8 06             	cmp    $0x6,%eax # must be 6
   401082:	74 4e                	je     4010d2 <phase_5+0x70>
   401084:	e8 b1 03 00 00       	callq  40143a <explode_bomb>
   401089:	eb 47                	jmp    4010d2 <phase_5+0x70>
-  40108b:	0f b6 0c 03          	movzbl (%rbx,%rax,1),%ecx
-  40108f:	88 0c 24             	mov    %cl,(%rsp)
-  401092:	48 8b 14 24          	mov    (%rsp),%rdx
-  401096:	83 e2 0f             	and    $0xf,%edx
-  401099:	0f b6 92 b0 24 40 00 	movzbl 0x4024b0(%rdx),%edx
-  4010a0:	88 54 04 10          	mov    %dl,0x10(%rsp,%rax,1)
-  4010a4:	48 83 c0 01          	add    $0x1,%rax
+  # LOOP (rax = 0)
+  40108b:	0f b6 0c 03          	movzbl (%rbx,%rax,1),%ecx # scan input from index 0 to 5
+  40108f:	88 0c 24             	mov    %cl,(%rsp) # low 8 bits(char: input[rax]) to stack top
+  401092:	48 8b 14 24          	mov    (%rsp),%rdx # input[rax] to %rdx
+  401096:	83 e2 0f             	and    $0xf,%edx # & with low 4 bits of %rdx
+  401099:	0f b6 92 b0 24 40 00 	movzbl 0x4024b0(%rdx),%edx # what is it in 0x4024b0? move with offset %rdx to %edx
+  4010a0:	88 54 04 10          	mov    %dl,0x10(%rsp,%rax,1) # move char in %edx to stack(%rsp + %rax)
+  4010a4:	48 83 c0 01          	add    $0x1,%rax # rax = rax + 1;
   4010a8:	48 83 f8 06          	cmp    $0x6,%rax
-  4010ac:	75 dd                	jne    40108b <phase_5+0x29>
+  4010ac:	75 dd                	jne    40108b <phase_5+0x29> # if rax != 6
+  # LOOP ENDS
   4010ae:	c6 44 24 16 00       	movb   $0x0,0x16(%rsp)
-  4010b3:	be 5e 24 40 00       	mov    $0x40245e,%esi
-  4010b8:	48 8d 7c 24 10       	lea    0x10(%rsp),%rdi
-  4010bd:	e8 76 02 00 00       	callq  401338 <strings_not_equal>
+  4010b3:	be 5e 24 40 00       	mov    $0x40245e,%esi # "flyers"
+  4010b8:	48 8d 7c 24 10       	lea    0x10(%rsp),%rdi # start
+  4010bd:	e8 76 02 00 00       	callq  401338 <strings_not_equal> # compare string (flyers == flyers)
   4010c2:	85 c0                	test   %eax,%eax
-  4010c4:	74 13                	je     4010d9 <phase_5+0x77>
+  4010c4:	74 13                	je     4010d9 <phase_5+0x77> # if it is equal
   4010c6:	e8 6f 03 00 00       	callq  40143a <explode_bomb>
   4010cb:	0f 1f 44 00 00       	nopl   0x0(%rax,%rax,1)
   4010d0:	eb 07                	jmp    4010d9 <phase_5+0x77>
+
   4010d2:	b8 00 00 00 00       	mov    $0x0,%eax
   4010d7:	eb b2                	jmp    40108b <phase_5+0x29>
+  # check canary
   4010d9:	48 8b 44 24 18       	mov    0x18(%rsp),%rax
-  4010de:	64 48 33 04 25 28 00 	xor    %fs:0x28,%rax
+  4010de:	64 48 33 04 25 28 00 	xor    %fs:0x28,%rax 
+  # end
   4010e5:	00 00 
   4010e7:	74 05                	je     4010ee <phase_5+0x8c>
-  4010e9:	e8 42 fa ff ff       	callq  400b30 <__stack_chk_fail@plt>
+  4010e9:	e8 42 fa ff ff       	callq  400b30 <__stack_chk_fail@plt> # just use canary to check stack
   4010ee:	48 83 c4 20          	add    $0x20,%rsp
   4010f2:	5b                   	pop    %rbx
   4010f3:	c3                   	retq   
@@ -539,55 +545,75 @@ Disassembly of section .text:
   401100:	49 89 e5             	mov    %rsp,%r13
   401103:	48 89 e6             	mov    %rsp,%rsi
   401106:	e8 51 03 00 00       	callq  40145c <read_six_numbers>
-  40110b:	49 89 e6             	mov    %rsp,%r14
-  40110e:	41 bc 00 00 00 00    	mov    $0x0,%r12d
-  401114:	4c 89 ed             	mov    %r13,%rbp
+
+  40110b:	49 89 e6             	mov    %rsp,%r14 # temp saved %rsp
+
+  # LOOP BEGINS (check numbers) (each number should be <= 6 AND no duplication)
+  40110e:	41 bc 00 00 00 00    	mov    $0x0,%r12d # var i in loop
+
+  401114:	4c 89 ed             	mov    %r13,%rbp # (update %rsp)
   401117:	41 8b 45 00          	mov    0x0(%r13),%eax
   40111b:	83 e8 01             	sub    $0x1,%eax
   40111e:	83 f8 05             	cmp    $0x5,%eax
-  401121:	76 05                	jbe    401128 <phase_6+0x34>
+  401121:	76 05                	jbe    401128 <phase_6+0x34> # %eax(input number) should be all <= 6 (number comparidson)
   401123:	e8 12 03 00 00       	callq  40143a <explode_bomb>
+
   401128:	41 83 c4 01          	add    $0x1,%r12d
   40112c:	41 83 fc 06          	cmp    $0x6,%r12d
-  401130:	74 21                	je     401153 <phase_6+0x5f>
-  401132:	44 89 e3             	mov    %r12d,%ebx
+  401130:	74 21                	je     401153 <phase_6+0x5f> # if %12d(init 0) == 6 (loop ends)
+  401132:	44 89 e3             	mov    %r12d,%ebx # n = i
+
   401135:	48 63 c3             	movslq %ebx,%rax
-  401138:	8b 04 84             	mov    (%rsp,%rax,4),%eax
+  401138:	8b 04 84             	mov    (%rsp,%rax,4),%eax # read n-th number
   40113b:	39 45 00             	cmp    %eax,0x0(%rbp)
-  40113e:	75 05                	jne    401145 <phase_6+0x51>
+  40113e:	75 05                	jne    401145 <phase_6+0x51> # should not be == *(current %rbp)
   401140:	e8 f5 02 00 00       	callq  40143a <explode_bomb>
-  401145:	83 c3 01             	add    $0x1,%ebx
+
+  401145:	83 c3 01             	add    $0x1,%ebx # n++
   401148:	83 fb 05             	cmp    $0x5,%ebx
-  40114b:	7e e8                	jle    401135 <phase_6+0x41>
-  40114d:	49 83 c5 04          	add    $0x4,%r13
+  40114b:	7e e8                	jle    401135 <phase_6+0x41> # if n <= 5
+  40114d:	49 83 c5 04          	add    $0x4,%r13 # rbp + 4
   401151:	eb c1                	jmp    401114 <phase_6+0x20>
-  401153:	48 8d 74 24 18       	lea    0x18(%rsp),%rsi
-  401158:	4c 89 f0             	mov    %r14,%rax
+  # LOOP ENDS
+
+  # map x => 7 - x
+  401153:	48 8d 74 24 18       	lea    0x18(%rsp),%rsi # !!!NOTE: 0x18 => 24!!!
+  401158:	4c 89 f0             	mov    %r14,%rax # %rax is now %rsp saved in %r14
   40115b:	b9 07 00 00 00       	mov    $0x7,%ecx
-  401160:	89 ca                	mov    %ecx,%edx
-  401162:	2b 10                	sub    (%rax),%edx
-  401164:	89 10                	mov    %edx,(%rax)
-  401166:	48 83 c0 04          	add    $0x4,%rax
+  401160:	89 ca                	mov    %ecx,%edx # %edx = 7
+  401162:	2b 10                	sub    (%rax),%edx # %edx = %edx - *(%rax)
+  401164:	89 10                	mov    %edx,(%rax) # replace (%rax) with 7 - (%rax)
+  401166:	48 83 c0 04          	add    $0x4,%rax # %rsp + 4 (2nd... top ele on stack)
   40116a:	48 39 f0             	cmp    %rsi,%rax
-  40116d:	75 f1                	jne    401160 <phase_6+0x6c>
+  40116d:	75 f1                	jne    401160 <phase_6+0x6c> # if %rax != %rsi
+
+  # LOOP BEGINS
   40116f:	be 00 00 00 00       	mov    $0x0,%esi
   401174:	eb 21                	jmp    401197 <phase_6+0xa3>
-  401176:	48 8b 52 08          	mov    0x8(%rdx),%rdx
-  40117a:	83 c0 01             	add    $0x1,%eax
-  40117d:	39 c8                	cmp    %ecx,%eax
-  40117f:	75 f5                	jne    401176 <phase_6+0x82>
-  401181:	eb 05                	jmp    401188 <phase_6+0x94>
-  401183:	ba d0 32 60 00       	mov    $0x6032d0,%edx
-  401188:	48 89 54 74 20       	mov    %rdx,0x20(%rsp,%rsi,2)
+
+  401176:	48 8b 52 08          	mov    0x8(%rdx),%rdx # rdx = rdx + 8
+  40117a:	83 c0 01             	add    $0x1,%eax # eax = eax + 1
+  40117d:	39 c8                	cmp    %ecx,%eax # ecx - eax (ecx is the number read from stack)
+  40117f:	75 f5                	jne    401176 <phase_6+0x82> # ecx != eax, again (make eax tobe == ecx)
+  401181:	eb 05                	jmp    401188 <phase_6+0x94> # else
+
+  # if number on stack <= 1 (from 40119d)
+  401183:	ba d0 32 60 00       	mov    $0x6032d0,%edx # 0x6032d0 is the beginning of node1
+
+  401188:	48 89 54 74 20       	mov    %rdx,0x20(%rsp,%rsi,2) # offset 4 * 2 => sizeof node
   40118d:	48 83 c6 04          	add    $0x4,%rsi
-  401191:	48 83 fe 18          	cmp    $0x18,%rsi
-  401195:	74 14                	je     4011ab <phase_6+0xb7>
-  401197:	8b 0c 34             	mov    (%rsp,%rsi,1),%ecx
+  401191:	48 83 fe 18          	cmp    $0x18,%rsi # 24!!!
+  401195:	74 14                	je     4011ab <phase_6+0xb7> # if %rsi == 24, break
+  # read num from stack
+  401197:	8b 0c 34             	mov    (%rsp,%rsi,1),%ecx # *(%rsp + 1 * %rsi)
   40119a:	83 f9 01             	cmp    $0x1,%ecx
-  40119d:	7e e4                	jle    401183 <phase_6+0x8f>
-  40119f:	b8 01 00 00 00       	mov    $0x1,%eax
+  # ---
+  40119d:	7e e4                	jle    401183 <phase_6+0x8f> # if %ecx <= 1
+  40119f:	b8 01 00 00 00       	mov    $0x1,%eax # else
   4011a4:	ba d0 32 60 00       	mov    $0x6032d0,%edx
   4011a9:	eb cb                	jmp    401176 <phase_6+0x82>
+  # LOOP ENDS
+
   4011ab:	48 8b 5c 24 20       	mov    0x20(%rsp),%rbx
   4011b0:	48 8d 44 24 28       	lea    0x28(%rsp),%rax
   4011b5:	48 8d 74 24 50       	lea    0x50(%rsp),%rsi
