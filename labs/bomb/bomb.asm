@@ -589,23 +589,23 @@ Disassembly of section .text:
 
   # LOOP BEGINS
   40116f:	be 00 00 00 00       	mov    $0x0,%esi
-  401174:	eb 21                	jmp    401197 <phase_6+0xa3>
+  401174:	eb 21                	jmp    401197 <phase_6+0xa3> # jump
 
-  401176:	48 8b 52 08          	mov    0x8(%rdx),%rdx # rdx = rdx + 8
+  401176:	48 8b 52 08          	mov    0x8(%rdx),%rdx # rdx = rdx + 8(size of node) (node = node -> next)
   40117a:	83 c0 01             	add    $0x1,%eax # eax = eax + 1
   40117d:	39 c8                	cmp    %ecx,%eax # ecx - eax (ecx is the number read from stack)
-  40117f:	75 f5                	jne    401176 <phase_6+0x82> # ecx != eax, again (make eax tobe == ecx)
+  40117f:	75 f5                	jne    401176 <phase_6+0x82> # ecx != eax, again (make eax == ecx) (calc offset)
   401181:	eb 05                	jmp    401188 <phase_6+0x94> # else
 
   # if number on stack <= 1 (from 40119d)
   401183:	ba d0 32 60 00       	mov    $0x6032d0,%edx # 0x6032d0 is the beginning of node1
 
-  401188:	48 89 54 74 20       	mov    %rdx,0x20(%rsp,%rsi,2) # offset 4 * 2 => sizeof node
+  401188:	48 89 54 74 20       	mov    %rdx,0x20(%rsp,%rsi,2) # offset 4 * 2, 8 * 2, 12 * 2, ... => sizeof node
   40118d:	48 83 c6 04          	add    $0x4,%rsi
   401191:	48 83 fe 18          	cmp    $0x18,%rsi # 24!!!
   401195:	74 14                	je     4011ab <phase_6+0xb7> # if %rsi == 24, break
   # read num from stack
-  401197:	8b 0c 34             	mov    (%rsp,%rsi,1),%ecx # *(%rsp + 1 * %rsi)
+  401197:	8b 0c 34             	mov    (%rsp,%rsi,1),%ecx # write *(%rsp + 1 * %rsi) to %ecx
   40119a:	83 f9 01             	cmp    $0x1,%ecx
   # ---
   40119d:	7e e4                	jle    401183 <phase_6+0x8f> # if %ecx <= 1
