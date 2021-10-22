@@ -587,23 +587,24 @@ Disassembly of section .text:
   40116a:	48 39 f0             	cmp    %rsi,%rax
   40116d:	75 f1                	jne    401160 <phase_6+0x6c> # if %rax != %rsi
 
-  # LOOP BEGINS
+  # LOOP BEGINS (save n-th(the n-th input number) node pointer(address) to stack)
   40116f:	be 00 00 00 00       	mov    $0x0,%esi
   401174:	eb 21                	jmp    401197 <phase_6+0xa3> # jump
 
+  # update %rdx to the address of target node
   401176:	48 8b 52 08          	mov    0x8(%rdx),%rdx # rdx = rdx + 8(size of node) (node = node -> next)
-  40117a:	83 c0 01             	add    $0x1,%eax # eax = eax + 1
+  40117a:	83 c0 01             	add    $0x1,%eax # eax = eax + 1 (eax is initially 1)
   40117d:	39 c8                	cmp    %ecx,%eax # ecx - eax (ecx is the number read from stack)
   40117f:	75 f5                	jne    401176 <phase_6+0x82> # ecx != eax, again (make eax == ecx) (calc offset)
   401181:	eb 05                	jmp    401188 <phase_6+0x94> # else
 
-  # if number on stack <= 1 (from 40119d)
+  # if number on stack <= 1(no need to update %rdx(401176)) (from 40119d)
   401183:	ba d0 32 60 00       	mov    $0x6032d0,%edx # 0x6032d0 is the beginning of node1
 
-  401188:	48 89 54 74 20       	mov    %rdx,0x20(%rsp,%rsi,2) # offset 4 * 2, 8 * 2, 12 * 2, ... => sizeof node
-  40118d:	48 83 c6 04          	add    $0x4,%rsi
+  401188:	48 89 54 74 20       	mov    %rdx,0x20(%rsp,%rsi,2) # save node address to *(0x20 + i * 2 + %rsp), need 48bytes
+  40118d:	48 83 c6 04          	add    $0x4,%rsi # i += 4
   401191:	48 83 fe 18          	cmp    $0x18,%rsi # 24!!!
-  401195:	74 14                	je     4011ab <phase_6+0xb7> # if %rsi == 24, break
+  401195:	74 14                	je     4011ab <phase_6+0xb7> # if i == 24, break
   # read num from stack
   401197:	8b 0c 34             	mov    (%rsp,%rsi,1),%ecx # write *(%rsp + 1 * %rsi) to %ecx
   40119a:	83 f9 01             	cmp    $0x1,%ecx
@@ -614,28 +615,41 @@ Disassembly of section .text:
   4011a9:	eb cb                	jmp    401176 <phase_6+0x82>
   # LOOP ENDS
 
-  4011ab:	48 8b 5c 24 20       	mov    0x20(%rsp),%rbx
-  4011b0:	48 8d 44 24 28       	lea    0x28(%rsp),%rax
-  4011b5:	48 8d 74 24 50       	lea    0x50(%rsp),%rsi
-  4011ba:	48 89 d9             	mov    %rbx,%rcx
-  4011bd:	48 8b 10             	mov    (%rax),%rdx
-  4011c0:	48 89 51 08          	mov    %rdx,0x8(%rcx)
-  4011c4:	48 83 c0 08          	add    $0x8,%rax
-  4011c8:	48 39 f0             	cmp    %rsi,%rax
-  4011cb:	74 05                	je     4011d2 <phase_6+0xde>
-  4011cd:	48 89 d1             	mov    %rdx,%rcx
-  4011d0:	eb eb                	jmp    4011bd <phase_6+0xc9>
-  4011d2:	48 c7 42 08 00 00 00 	movq   $0x0,0x8(%rdx)
+  4011ab:	48 8b 5c 24 20       	mov    0x20(%rsp),%rbx # %rbx is address of node (Node* node1)
+  4011b0:	48 8d 44 24 28       	lea    0x28(%rsp),%rax # next node addr (Node** node2)
+  4011b5:	48 8d 74 24 50       	lea    0x50(%rsp),%rsi # stack bottom
+  4011ba:	48 89 d9             	mov    %rbx,%rcx # init
+  
+  # LOOP BEGINS (reorder nodes)
+  # node1->next = node2 (%rdx saved Node* node2)
+  4011bd:	48 8b 10             	mov    (%rax),%rdx # dereference the addr, get the value of node x
+  4011c0:	48 89 51 08          	mov    %rdx,0x8(%rcx) # replace node->next with
+
+  4011c4:	48 83 c0 08          	add    $0x8,%rax # %rax += 8 (to next node addr on stack)
+  4011c8:	48 39 f0             	cmp    %rsi,%rax # if reach to top (the last node addr)
+  4011cb:	74 05                	je     4011d2 <phase_6+0xde> # break
+  4011cd:	48 89 d1             	mov    %rdx,%rcx # %rcx is now %rdx (%rcx = node2)
+  4011d0:	eb eb                	jmp    4011bd <phase_6+0xc9> # continue loop
+  # LOOP ENDS
+
+  # assgin null
+  4011d2:	48 c7 42 08 00 00 00 	movq   $0x0,0x8(%rdx) # last node -> next = NULL
   4011d9:	00 
+
+  # LOOP BEGINS (compare value between every nodes)
   4011da:	bd 05 00 00 00       	mov    $0x5,%ebp
-  4011df:	48 8b 43 08          	mov    0x8(%rbx),%rax
-  4011e3:	8b 00                	mov    (%rax),%eax
-  4011e5:	39 03                	cmp    %eax,(%rbx)
-  4011e7:	7d 05                	jge    4011ee <phase_6+0xfa>
+  4011df:	48 8b 43 08          	mov    0x8(%rbx),%rax # value of node2 (%rbx is the head of LinkedList)
+  4011e3:	8b 00                	mov    (%rax),%eax # dereference, get value of node2
+  4011e5:	39 03                	cmp    %eax,(%rbx) # compare node1.val - node2.val
+  4011e7:	7d 05                	jge    4011ee <phase_6+0xfa> # if node1.val >= node2.val (descending order!)
   4011e9:	e8 4c 02 00 00       	callq  40143a <explode_bomb>
-  4011ee:	48 8b 5b 08          	mov    0x8(%rbx),%rbx
+
+  4011ee:	48 8b 5b 08          	mov    0x8(%rbx),%rbx # %rbx += 8
   4011f2:	83 ed 01             	sub    $0x1,%ebp
-  4011f5:	75 e8                	jne    4011df <phase_6+0xeb>
+  4011f5:	75 e8                	jne    4011df <phase_6+0xeb> # break when %ebp == 0
+  # LOOP ENDS
+
+  # END
   4011f7:	48 83 c4 50          	add    $0x50,%rsp
   4011fb:	5b                   	pop    %rbx
   4011fc:	5d                   	pop    %rbp
