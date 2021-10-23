@@ -664,15 +664,15 @@ Disassembly of section .text:
   40120b:	74 2b                	je     401238 <fun7+0x34>
   40120d:	8b 17                	mov    (%rdi),%edx
   40120f:	39 f2                	cmp    %esi,%edx
-  401211:	7e 0d                	jle    401220 <fun7+0x1c>
-  401213:	48 8b 7f 08          	mov    0x8(%rdi),%rdi
+  401211:	7e 0d                	jle    401220 <fun7+0x1c> # <= 0
+  401213:	48 8b 7f 08          	mov    0x8(%rdi),%rdi # else > 0
   401217:	e8 e8 ff ff ff       	callq  401204 <fun7>
   40121c:	01 c0                	add    %eax,%eax
   40121e:	eb 1d                	jmp    40123d <fun7+0x39>
   401220:	b8 00 00 00 00       	mov    $0x0,%eax
   401225:	39 f2                	cmp    %esi,%edx
   401227:	74 14                	je     40123d <fun7+0x39>
-  401229:	48 8b 7f 10          	mov    0x10(%rdi),%rdi
+  401229:	48 8b 7f 10          	mov    0x10(%rdi),%rdi # 
   40122d:	e8 d2 ff ff ff       	callq  401204 <fun7>
   401232:	8d 44 00 01          	lea    0x1(%rax,%rax,1),%eax
   401236:	eb 05                	jmp    40123d <fun7+0x39>
@@ -683,17 +683,17 @@ Disassembly of section .text:
 0000000000401242 <secret_phase>:
   401242:	53                   	push   %rbx
   401243:	e8 56 02 00 00       	callq  40149e <read_line>
-  401248:	ba 0a 00 00 00       	mov    $0xa,%edx
-  40124d:	be 00 00 00 00       	mov    $0x0,%esi
-  401252:	48 89 c7             	mov    %rax,%rdi
-  401255:	e8 76 f9 ff ff       	callq  400bd0 <strtol@plt>
+  401248:	ba 0a 00 00 00       	mov    $0xa,%edx # arg3 int base
+  40124d:	be 00 00 00 00       	mov    $0x0,%esi # arg2 char** char_end
+  401252:	48 89 c7             	mov    %rax,%rdi # arg1 char* str
+  401255:	e8 76 f9 ff ff       	callq  400bd0 <strtol@plt> # string to long, return long
   40125a:	48 89 c3             	mov    %rax,%rbx
-  40125d:	8d 40 ff             	lea    -0x1(%rax),%eax
-  401260:	3d e8 03 00 00       	cmp    $0x3e8,%eax
+  40125d:	8d 40 ff             	lea    -0x1(%rax),%eax # rax = rax - 1
+  401260:	3d e8 03 00 00       	cmp    $0x3e8,%eax # 0x3e8 = 1000
   401265:	76 05                	jbe    40126c <secret_phase+0x2a>
-  401267:	e8 ce 01 00 00       	callq  40143a <explode_bomb>
-  40126c:	89 de                	mov    %ebx,%esi
-  40126e:	bf f0 30 60 00       	mov    $0x6030f0,%edi
+  401267:	e8 ce 01 00 00       	callq  40143a <explode_bomb> # if eax > 1000
+  40126c:	89 de                	mov    %ebx,%esi # arg 2
+  40126e:	bf f0 30 60 00       	mov    $0x6030f0,%edi # arg 1
   401273:	e8 8c ff ff ff       	callq  401204 <fun7>
   401278:	83 f8 02             	cmp    $0x2,%eax
   40127b:	74 05                	je     401282 <secret_phase+0x40>
@@ -957,28 +957,29 @@ Disassembly of section .text:
   4015cf:	00 00 
   4015d1:	48 89 44 24 68       	mov    %rax,0x68(%rsp)
   4015d6:	31 c0                	xor    %eax,%eax
-  4015d8:	83 3d 81 21 20 00 06 	cmpl   $0x6,0x202181(%rip)        # 603760 <num_input_strings>
+  4015d8:	83 3d 81 21 20 00 06 	cmpl   $0x6,0x202181(%rip)        # 603760 <num_input_strings> # how many strings do you input?
   4015df:	75 5e                	jne    40163f <phase_defused+0x7b>
-  4015e1:	4c 8d 44 24 10       	lea    0x10(%rsp),%r8
-  4015e6:	48 8d 4c 24 0c       	lea    0xc(%rsp),%rcx
-  4015eb:	48 8d 54 24 08       	lea    0x8(%rsp),%rdx
-  4015f0:	be 19 26 40 00       	mov    $0x402619,%esi
-  4015f5:	bf 70 38 60 00       	mov    $0x603870,%edi
+  # if you input 6 strings(phase6 will be defused)
+  4015e1:	4c 8d 44 24 10       	lea    0x10(%rsp),%r8 # %s
+  4015e6:	48 8d 4c 24 0c       	lea    0xc(%rsp),%rcx # second %d
+  4015eb:	48 8d 54 24 08       	lea    0x8(%rsp),%rdx # first %d
+  4015f0:	be 19 26 40 00       	mov    $0x402619,%esi # "%d %d %s"
+  4015f5:	bf 70 38 60 00       	mov    $0x603870,%edi # buffer
   4015fa:	e8 f1 f5 ff ff       	callq  400bf0 <__isoc99_sscanf@plt>
-  4015ff:	83 f8 03             	cmp    $0x3,%eax
-  401602:	75 31                	jne    401635 <phase_defused+0x71>
-  401604:	be 22 26 40 00       	mov    $0x402622,%esi
+  4015ff:	83 f8 03             	cmp    $0x3,%eax # if you input %d %d %s properly
+  401602:	75 31                	jne    401635 <phase_defused+0x71> # pay attention
+  401604:	be 22 26 40 00       	mov    $0x402622,%esi # compare with input string
   401609:	48 8d 7c 24 10       	lea    0x10(%rsp),%rdi
-  40160e:	e8 25 fd ff ff       	callq  401338 <strings_not_equal>
+  40160e:	e8 25 fd ff ff       	callq  401338 <strings_not_equal> # "DrEvil"
   401613:	85 c0                	test   %eax,%eax
-  401615:	75 1e                	jne    401635 <phase_defused+0x71>
-  401617:	bf f8 24 40 00       	mov    $0x4024f8,%edi
+  401615:	75 1e                	jne    401635 <phase_defused+0x71> # if not equal
+  401617:	bf f8 24 40 00       	mov    $0x4024f8,%edi # "Curses, you've found the secret phase!"
   40161c:	e8 ef f4 ff ff       	callq  400b10 <puts@plt>
-  401621:	bf 20 25 40 00       	mov    $0x402520,%edi
+  401621:	bf 20 25 40 00       	mov    $0x402520,%edi # "But finding it and solving it are quite different..."
   401626:	e8 e5 f4 ff ff       	callq  400b10 <puts@plt>
   40162b:	b8 00 00 00 00       	mov    $0x0,%eax
-  401630:	e8 0d fc ff ff       	callq  401242 <secret_phase>
-  401635:	bf 58 25 40 00       	mov    $0x402558,%edi
+  401630:	e8 0d fc ff ff       	callq  401242 <secret_phase> # gogogo!
+  401635:	bf 58 25 40 00       	mov    $0x402558,%edi # "Congratulations! You've defused the bomb!"
   40163a:	e8 d1 f4 ff ff       	callq  400b10 <puts@plt>
   40163f:	48 8b 44 24 68       	mov    0x68(%rsp),%rax
   401644:	64 48 33 04 25 28 00 	xor    %fs:0x28,%rax
