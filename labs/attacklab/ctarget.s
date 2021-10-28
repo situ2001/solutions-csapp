@@ -822,7 +822,7 @@ Disassembly of section .text:
   40184c:	41 54                	push   %r12
   40184e:	55                   	push   %rbp
   40184f:	53                   	push   %rbx
-  401850:	48 83 c4 80          	add    $0xffffffffffffff80,%rsp
+  401850:	48 83 c4 80          	add    $0xffffffffffffff80,%rsp # => add (-126)
   401854:	41 89 fc             	mov    %edi,%r12d
   401857:	48 89 f5             	mov    %rsi,%rbp
   40185a:	64 48 8b 04 25 28 00 	mov    %fs:0x28,%rax
