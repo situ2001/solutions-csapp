@@ -23,9 +23,9 @@ typedef struct
     int valid;
     int tag;
     int flag;
-} Line, *Set, **Cache;
-// typedef Line *Set;
-// typedef Set *Cache;
+} Line;
+typedef Line *Set;
+typedef Set *Cache;
 
 Cache cache;
 
