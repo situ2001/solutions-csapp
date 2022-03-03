@@ -11,3 +11,5 @@ chapter*/*
 # specified files and dirs
 .vscode/
 **/*.exe
+
+code
